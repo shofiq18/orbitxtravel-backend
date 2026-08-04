@@ -19,7 +19,7 @@ const createHotel = async (userId: string, payload: any) => {
   return hotel;
 };
 
-const getHotels = async (filters: { address?: string; verifiedOnly?: string }) => {
+const getHotels = async (filters: { address?: string; verifiedOnly?: string; ownerId?: string }) => {
   const whereConditions: any = {};
 
   if (filters.address) {
@@ -31,6 +31,10 @@ const getHotels = async (filters: { address?: string; verifiedOnly?: string }) =
 
   if (filters.verifiedOnly === 'true') {
     whereConditions.isVerified = true;
+  }
+
+  if (filters.ownerId) {
+    whereConditions.ownerId = filters.ownerId;
   }
 
   const hotels = await prisma.hotel.findMany({

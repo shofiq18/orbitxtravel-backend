@@ -23,6 +23,7 @@ const signupUser = async (payload: any) => {
 
   const hashedPassword = await bcrypt.hash(password, 12);
   const otp = generateOTP();
+  console.log(`\n🔑 [OTP GENERATED] for user registration (${email}): ${otp}\n`);
   const otpExpiry = new Date(Date.now() + config.otp_expiry_minutes * 60 * 1000);
 
   const newUser = await prisma.user.create({
@@ -109,6 +110,7 @@ const resendOtp = async (email: string) => {
   }
 
   const otp = generateOTP();
+  console.log(`\n🔑 [OTP RESENT] for user (${email}): ${otp}\n`);
   const otpExpiry = new Date(Date.now() + config.otp_expiry_minutes * 60 * 1000);
 
   await prisma.user.update({

@@ -39,6 +39,7 @@ const getHotels = catchAsync(async (req: Request, res: Response) => {
   const filters = {
     address: req.query.address as string,
     verifiedOnly: req.query.verifiedOnly as string,
+    ownerId: req.query.ownerId as string,
   };
   const result = await HotelService.getHotels(filters);
   sendResponse(res, {

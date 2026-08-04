@@ -1,0 +1,31 @@
+import { z } from 'zod';
+
+const lockedRoomItemSchema = z.object({
+  roomId: z.string().uuid('Invalid Room ID'),
+  quantity: z.number().int().positive('Quantity must be greater than zero'),
+  checkInDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Check-in date must be YYYY-MM-DD'),
+  checkOutDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Check-out date must be YYYY-MM-DD'),
+});
+
+const createPackageSchema = z.object({
+  body: z.object({
+    title: z.string().min(3, 'Title is too short'),
+    destination: z.string().min(2, 'Destination is required'),
+    startDate: z.string().datetime('Start date must be a valid ISO datetime string'),
+    endDate: z.string().datetime('End date must be a valid ISO datetime string'),
+    maxSeats: z.number().int().positive('Max seats must be a positive number'),
+    inclusions: z.object({
+      transport: z.string().min(2, 'Transport description is required'),
+      stayType: z.string().min(2, 'Stay description is required'),
+      mealPlan: z.string().min(2, 'Meal plan is required'),
+      customs: z.array(z.string()).default([]),
+    }),
+    totalPackagePrice: z.number().positive('Total package price must be positive'),
+    minimumSeatLockFee: z.number().positive('Minimum seat lock fee must be positive'),
+    lockedRooms: z.array(lockedRoomItemSchema).optional(),
+  }),
+});
+
+export const TourValidation = {
+  createPackageSchema,
+};

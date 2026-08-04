@@ -1,0 +1,190 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  traveler
+  hotel_owner
+  tour_organizer
+  admin
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  REFUNDED
+}
+
+enum LockStatus {
+  LOCKED
+  BOOKED
+  RELEASED
+}
+
+enum TransactionType {
+  SEAT_LOCK
+  PLATFORM_COMMISSION
+  HOST_PAYOUT
+}
+
+model User {
+  id                    String    @id @default(uuid())
+  email                 String    @unique
+  password              String
+  fullName              String
+  roles                 Role[]    @default([traveler])
+  currentRole           Role      @default(traveler)
+  isEmailVerified       Boolean   @default(false)
+  verificationOtp       String?
+  verificationOtpExpiry DateTime?
+  resetPasswordOtp      String?
+  resetPasswordOtpExpiry DateTime?
+
+  // Vendor Onboarding Info
+  isVerified            Boolean   @default(false)
+  verificationDocUrl    String?   // NID/Passport/Trade License file URL
+  vendorType            Role?     // hotel_owner or tour_organizer
+  businessProfile       Json?     // { businessName, address, licenseNumber, etc. }
+  payoutDetails         Json?     // { bankName, accountNumber, branch, bkashNumber, nagadNumber }
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  hotels                Hotel[]
+  packages              Package[]    @relation("OrganizerPackages")
+  bookings              Booking[]    @relation("TravelerBookings")
+  notifications         Notification[]
+  transactionsSent      Transaction[] @relation("TxnSender")
+  transactionsReceived  Transaction[] @relation("TxnReceiver")
+}
+
+model Hotel {
+  id          String   @id @default(uuid())
+  ownerId     String
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name        String
+  address     String
+  description String?
+  amenities   String[]
+  photos      String[]
+  isVerified  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rooms       Room[]
+}
+
+model Room {
+  id          String   @id @default(uuid())
+  hotelId     String
+  hotel       Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  type        String   // Single, Double, Suite, etc.
+  amenities   String[]
+  photos      String[]
+  inventory   Int      // Total available rooms of this type
+  b2cPrice    Float    // Public price per night
+  b2bPrice    Float    // Wholesale price for verified tour organizers
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  blockedDates BlockedDate[]
+  lockedRooms  RoomLock[]
+}
+
+model BlockedDate {
+  id        String   @id @default(uuid())
+  roomId    String
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  date      DateTime // Format: YYYY-MM-DD
+  reason    String?  // e.g. "Maintenance", "Manual offline booking"
+  createdAt DateTime @default(now())
+}
+
+model RoomLock {
+  id           String     @id @default(uuid())
+  packageId    String?
+  package      Package?   @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  roomId       String
+  room         Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  quantity     Int
+  checkInDate  DateTime
+  checkOutDate DateTime
+  totalPrice   Float
+  status       LockStatus @default(LOCKED)
+  expiresAt    DateTime   // Lock release expiry
+  createdAt    DateTime   @default(now())
+}
+
+model Package {
+  id                  String     @id @default(uuid())
+  organizerId         String
+  organizer           User       @relation("OrganizerPackages", fields: [organizerId], references: [id], onDelete: Cascade)
+  title               String
+  destination         String
+  startDate           DateTime
+  endDate             DateTime
+  maxSeats            Int
+  availableSeats      Int
+  inclusions          Json       // { transport: string, stayType: string, mealPlan: string, customs: string[] }
+  totalPackagePrice   Float      // total cost per person
+  minimumSeatLockFee  Float      // amount required to book a seat
+  isVerified          Boolean    @default(false)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  lockedRooms         RoomLock[]
+  bookings            Booking[]
+}
+
+model Booking {
+  id            String        @id @default(uuid())
+  travelerId    String
+  traveler      User          @relation("TravelerBookings", fields: [travelerId], references: [id], onDelete: Cascade)
+  packageId     String
+  package       Package       @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  seatsBooked   Int
+  totalAmount   Float
+  paidAmount    Float         // Amount paid for locking (e.g. seatsBooked * minimumSeatLockFee)
+  paymentStatus PaymentStatus @default(PENDING)
+  bookingStatus BookingStatus @default(PENDING)
+  paymentTxnId  String?       // Payment Gateway Transaction ID
+  voucherUrl    String?       // Downloadable PDF URL
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Transaction {
+  id          String          @id @default(uuid())
+  type        TransactionType
+  amount      Float
+  senderId    String?
+  sender      User?           @relation("TxnSender", fields: [senderId], references: [id], onDelete: SetNull)
+  receiverId  String?
+  receiver    User?           @relation("TxnReceiver", fields: [receiverId], references: [id], onDelete: SetNull)
+  referenceId String?         // Booking ID or Payout ID
+  status      String          @default("COMPLETED") // COMPLETED, PENDING, FAILED
+  createdAt   DateTime        @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}

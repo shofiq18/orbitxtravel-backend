@@ -1,0 +1,35 @@
+import { z } from 'zod';
+
+const createHotelSchema = z.object({
+  body: z.object({
+    name: z.string().min(2, 'Hotel name is required'),
+    address: z.string().min(5, 'Hotel address is required'),
+    description: z.string().optional(),
+    amenities: z.array(z.string()).default([]),
+    photos: z.array(z.string().url()).default([]),
+  }),
+});
+
+const createRoomSchema = z.object({
+  body: z.object({
+    type: z.string().min(2, 'Room type is required (e.g. Deluxe Suite)'),
+    amenities: z.array(z.string()).default([]),
+    photos: z.array(z.string().url()).default([]),
+    inventory: z.number().int().nonnegative('Inventory must be a positive integer'),
+    b2cPrice: z.number().positive('B2C public price must be a positive number'),
+    b2bPrice: z.number().positive('B2B wholesale price must be a positive number'),
+  }),
+});
+
+const blockDatesSchema = z.object({
+  body: z.object({
+    dates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')),
+    reason: z.string().optional(),
+  }),
+});
+
+export const HotelValidation = {
+  createHotelSchema,
+  createRoomSchema,
+  blockDatesSchema,
+};

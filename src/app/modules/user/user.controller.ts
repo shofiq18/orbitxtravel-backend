@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { UserService } from './user.service.js';
 import catchAsync from '../../utils/catchAsync.js';
 import sendResponse from '../../utils/sendResponse.js';
+import { uploadToCloudinary } from '../../utils/upload.js';
 
 const signup = catchAsync(async (req: Request, res: Response) => {
   const result = await UserService.signupUser(req.body);
@@ -106,6 +107,20 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const uploadFile = catchAsync(async (req: Request, res: Response) => {
+  const { file } = req.body;
+  if (!file) {
+    throw new Error('File base64 data is required in request body');
+  }
+  const secureUrl = await uploadToCloudinary(file);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'File uploaded successfully.',
+    data: secureUrl,
+  });
+});
+
 export const UserController = {
   signup,
   verifyEmail,
@@ -115,4 +130,5 @@ export const UserController = {
   switchRole,
   getProfile,
   updateProfile,
+  uploadFile,
 };

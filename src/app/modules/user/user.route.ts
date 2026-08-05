@@ -30,4 +30,10 @@ router.post(
 router.get('/profile', auth(), UserController.getProfile);
 router.patch('/profile', auth(), UserController.updateProfile);
 
+router.post(
+  '/upload',
+  auth(),
+  UserController.uploadFile
+);
+
 export const UserRoutes = router;

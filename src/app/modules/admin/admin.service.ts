@@ -64,6 +64,7 @@ const verifyVendor = async (userId: string, isVerified: boolean) => {
         roles: updatedRoles,
         // Set currentRole to vendorType immediately if verified
         currentRole: isVerified ? vendorType : 'traveler',
+        vendorType: isVerified ? vendorType : null,
       },
     });
 

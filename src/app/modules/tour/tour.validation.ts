@@ -19,6 +19,8 @@ const createPackageSchema = z.object({
       stayType: z.string().min(2, 'Stay description is required'),
       mealPlan: z.string().min(2, 'Meal plan is required'),
       customs: z.array(z.string()).default([]),
+      coverImage: z.string().url('Cover image must be a valid URL').optional(),
+      photos: z.array(z.string().url()).optional(),
     }),
     totalPackagePrice: z.number().positive('Total package price must be positive'),
     minimumSeatLockFee: z.number().positive('Minimum seat lock fee must be positive'),

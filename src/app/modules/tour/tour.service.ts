@@ -12,6 +12,7 @@ const createPackage = async (organizerId: string, payload: any) => {
     totalPackagePrice,
     minimumSeatLockFee,
     lockedRooms,
+    itinerary,
   } = payload;
 
   const user = await prisma.user.findUnique({ where: { id: organizerId } });
@@ -35,6 +36,7 @@ const createPackage = async (organizerId: string, payload: any) => {
         totalPackagePrice,
         minimumSeatLockFee,
         isVerified: user.isVerified, // Matches organizer verification status
+        itinerary: itinerary || [],
       },
     });
 

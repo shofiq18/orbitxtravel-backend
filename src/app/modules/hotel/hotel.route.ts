@@ -14,6 +14,13 @@ router.post(
   HotelController.createHotel
 );
 
+router.patch(
+  '/:id',
+  auth('hotel_owner'),
+  validateRequest(HotelValidation.updateHotelSchema),
+  HotelController.updateHotel
+);
+
 router.get('/', HotelController.getHotels);
 router.get('/:id', HotelController.getHotelById);
 

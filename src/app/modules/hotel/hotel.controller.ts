@@ -108,6 +108,18 @@ const getBlockedRoomDates = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const updateHotel = catchAsync(async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  const { id } = req.params;
+  const result = await HotelService.updateHotel(userId, id as string, req.body);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Hotel listed policies updated successfully.',
+    data: result,
+  });
+});
+
 export const HotelController = {
   createHotel,
   getHotels,
@@ -116,4 +128,5 @@ export const HotelController = {
   getRooms,
   blockRoomDates,
   getBlockedRoomDates,
+  updateHotel,
 };

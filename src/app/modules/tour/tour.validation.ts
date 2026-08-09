@@ -24,6 +24,12 @@ const createPackageSchema = z.object({
     }),
     totalPackagePrice: z.number().positive('Total package price must be positive'),
     minimumSeatLockFee: z.number().positive('Minimum seat lock fee must be positive'),
+    itinerary: z.array(z.object({
+      day: z.number().int().positive(),
+      title: z.string().min(2, 'Itinerary title is too short'),
+      description: z.string().min(5, 'Itinerary description is too short'),
+      image: z.string().url('Itinerary image must be a valid URL').optional().or(z.literal('')),
+    })).optional(),
     lockedRooms: z.array(lockedRoomItemSchema).optional(),
   }),
 });

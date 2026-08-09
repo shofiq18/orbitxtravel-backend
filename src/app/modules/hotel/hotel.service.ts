@@ -175,6 +175,24 @@ const getBlockedDates = async (roomId: string) => {
   return blockedDates;
 };
 
+const updateHotel = async (userId: string, hotelId: string, payload: any) => {
+  const hotel = await prisma.hotel.findUnique({ where: { id: hotelId } });
+  if (!hotel) {
+    throw new AppError(404, 'Hotel not found.');
+  }
+
+  if (hotel.ownerId !== userId) {
+    throw new AppError(403, 'Forbidden: You do not own this hotel listing.');
+  }
+
+  const updatedHotel = await prisma.hotel.update({
+    where: { id: hotelId },
+    data: payload,
+  });
+
+  return updatedHotel;
+};
+
 export const HotelService = {
   createHotel,
   getHotels,
@@ -183,4 +201,5 @@ export const HotelService = {
   getRoomsByHotelId,
   blockDates,
   getBlockedDates,
+  updateHotel,
 };

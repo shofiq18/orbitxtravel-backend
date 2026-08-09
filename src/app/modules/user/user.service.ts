@@ -53,7 +53,7 @@ const signupUser = async (payload: any) => {
     <h1>Verify Your Email for orbitX Travel</h1>
     <p>Dear ${fullName},</p>
     <p>Thank you for signing up with orbitX Travel. Please use the following One-Time Password (OTP) to verify your registration:</p>
-    <h2 style="color: #4CAF50; font-size: 32px; letter-spacing: 5px;">${otp}</h2>
+    <div class="otp-code">${otp}</div>
     <p>This code is valid for ${config.otp_expiry_minutes} minutes.</p>
   `;
   await sendEmail(email, 'Verify Your Email - orbitX Travel', emailBody);
@@ -124,7 +124,7 @@ const resendOtp = async (email: string) => {
   const emailBody = `
     <h1>Verify Your Email - orbitX Travel</h1>
     <p>Use the following OTP code to verify your email address:</p>
-    <h2 style="color: #4CAF50; font-size: 32px; letter-spacing: 5px;">${otp}</h2>
+    <div class="otp-code">${otp}</div>
     <p>This code is valid for ${config.otp_expiry_minutes} minutes.</p>
   `;
   await sendEmail(email, 'Resend OTP - orbitX Travel', emailBody);

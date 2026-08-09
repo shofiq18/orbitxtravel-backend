@@ -7,6 +7,8 @@ const createHotelSchema = z.object({
     description: z.string().optional(),
     amenities: z.array(z.string()).default([]),
     photos: z.array(z.string().url()).default([]),
+    checkInTime: z.string().optional(),
+    checkOutTime: z.string().optional(),
   }),
 });
 
@@ -28,8 +30,21 @@ const blockDatesSchema = z.object({
   }),
 });
 
+const updateHotelSchema = z.object({
+  body: z.object({
+    name: z.string().min(2, 'Hotel name is required').optional(),
+    address: z.string().min(5, 'Hotel address is required').optional(),
+    description: z.string().optional(),
+    amenities: z.array(z.string()).optional(),
+    photos: z.array(z.string().url()).optional(),
+    checkInTime: z.string().optional(),
+    checkOutTime: z.string().optional(),
+  }),
+});
+
 export const HotelValidation = {
   createHotelSchema,
+  updateHotelSchema,
   createRoomSchema,
   blockDatesSchema,
 };

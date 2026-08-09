@@ -73,19 +73,21 @@ model User {
 }
 
 model Hotel {
-  id          String   @id @default(uuid())
-  ownerId     String
-  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  name        String
-  address     String
-  description String?
-  amenities   String[]
-  photos      String[]
-  isVerified  Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(uuid())
+  ownerId      String
+  owner        User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name         String
+  address      String
+  description  String?
+  amenities    String[]
+  photos       String[]
+  isVerified   Boolean  @default(false)
+  checkInTime  String?  @default("14:00")
+  checkOutTime String?  @default("12:00")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  rooms       Room[]
+  rooms        Room[]
 }
 
 model Room {
@@ -143,6 +145,7 @@ model Package {
   totalPackagePrice   Float      // total cost per person
   minimumSeatLockFee  Float      // amount required to book a seat
   isVerified          Boolean    @default(false)
+  itinerary           Json?      @default("[]")
   createdAt           DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
 

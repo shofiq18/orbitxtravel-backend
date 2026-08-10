@@ -58,6 +58,13 @@ const getHotelById = async (id: string, requesterRole?: string) => {
   const hotel = await prisma.hotel.findUnique({
     where: { id },
     include: {
+      owner: {
+        select: {
+          fullName: true,
+          email: true,
+          isVerified: true,
+        },
+      },
       rooms: true,
     },
   });
@@ -193,6 +200,51 @@ const updateHotel = async (userId: string, hotelId: string, payload: any) => {
   return updatedHotel;
 };
 
+const getRoomAvailability = async (roomId: string, checkInDate: string, checkOutDate: string) => {
+  const room = await prisma.room.findUnique({
+    where: { id: roomId },
+  });
+
+  if (!room) {
+    throw new AppError(404, 'Room not found.');
+  }
+
+  if (!checkInDate || !checkOutDate) {
+    return {
+      roomId,
+      totalInventory: room.inventory,
+      bookedQuantity: 0,
+      remainingInventory: room.inventory,
+    };
+  }
+
+  const checkIn = new Date(checkInDate);
+  const checkOut = new Date(checkOutDate);
+
+  // Check bookings overlapping this range
+  const overlappingBookings = await prisma.booking.findMany({
+    where: {
+      roomId,
+      paymentStatus: 'PAID',
+      bookingStatus: 'CONFIRMED',
+      AND: [
+        { checkInDate: { lt: checkOut } },
+        { checkOutDate: { gt: checkIn } },
+      ],
+    },
+  });
+
+  const bookedQuantity = overlappingBookings.reduce((sum, b) => sum + (b.roomQuantity || 0), 0);
+  const remainingInventory = Math.max(0, room.inventory - bookedQuantity);
+
+  return {
+    roomId,
+    totalInventory: room.inventory,
+    bookedQuantity,
+    remainingInventory,
+  };
+};
+
 export const HotelService = {
   createHotel,
   getHotels,
@@ -202,4 +254,5 @@ export const HotelService = {
   blockDates,
   getBlockedDates,
   updateHotel,
+  getRoomAvailability,
 };

@@ -5,6 +5,7 @@ import { TourRoutes } from '../modules/tour/tour.route.js';
 import { BookingRoutes } from '../modules/booking/booking.route.js';
 import { AdminRoutes } from '../modules/admin/admin.route.js';
 import { NotificationRoutes } from '../modules/notification/notification.route.js';
+import { ReviewRoutes } from '../modules/review/review.route.js';
 
 const router = Router();
 
@@ -36,6 +37,10 @@ const moduleRoutes = [
   {
     path: '/notifications',
     route: NotificationRoutes,
+  },
+  {
+    path: '/reviews',
+    route: ReviewRoutes,
   },
 ];
 

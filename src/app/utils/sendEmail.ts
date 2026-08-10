@@ -91,6 +91,7 @@ const wrapHtmlEmail = (contentHtml: string): string => {
     .otp-code {
       font-size: 32px !important;
       letter-spacing: 8px !important;
+      font-weight: bold !important; /* Made the OTP digits bold for high legibility */
       color: #047857 !important; /* Premium dark emerald green */
       background-color: #ecfdf5;
       padding: 16px 24px;

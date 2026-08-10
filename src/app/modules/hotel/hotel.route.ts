@@ -43,5 +43,7 @@ router.post(
 );
 
 router.get('/rooms/:roomId/blocked-dates', HotelController.getBlockedRoomDates);
+router.get('/rooms/:roomId/availability', HotelController.getRoomAvailability);
+router.get('/rooms/:roomId/availability', HotelController.getRoomAvailability);
 
 export const HotelRoutes = router;

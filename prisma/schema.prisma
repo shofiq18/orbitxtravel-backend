@@ -88,6 +88,8 @@ model Hotel {
   updatedAt    DateTime @updatedAt
 
   rooms        Room[]
+  reviews      Review[]
+  bookings     Booking[]
 }
 
 model Room {
@@ -105,6 +107,7 @@ model Room {
 
   blockedDates BlockedDate[]
   lockedRooms  RoomLock[]
+  bookings     Booking[]
 }
 
 model BlockedDate {
@@ -157,11 +160,23 @@ model Booking {
   id            String        @id @default(uuid())
   travelerId    String
   traveler      User          @relation("TravelerBookings", fields: [travelerId], references: [id], onDelete: Cascade)
-  packageId     String
-  package       Package       @relation(fields: [packageId], references: [id], onDelete: Cascade)
-  seatsBooked   Int
+  
+  // Optional relations for packages
+  packageId     String?
+  package       Package?      @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  seatsBooked   Int?
+  
+  // Optional relations for hotel stays
+  hotelId       String?
+  hotel         Hotel?        @relation(fields: [hotelId], references: [id], onDelete: SetNull)
+  roomId        String?
+  room          Room?         @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  roomQuantity  Int?
+  checkInDate   DateTime?
+  checkOutDate  DateTime?
+
   totalAmount   Float
-  paidAmount    Float         // Amount paid for locking (e.g. seatsBooked * minimumSeatLockFee)
+  paidAmount    Float         // Amount paid for locking (e.g. seatsBooked * minimumSeatLockFee or stay cost)
   paymentStatus PaymentStatus @default(PENDING)
   bookingStatus BookingStatus @default(PENDING)
   paymentTxnId  String?       // Payment Gateway Transaction ID
@@ -190,5 +205,16 @@ model Notification {
   title     String
   message   String
   isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  hotelId   String
+  hotel     Hotel    @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  name      String
+  avatar    String
+  rating    Int
+  comment   String
   createdAt DateTime @default(now())
 }

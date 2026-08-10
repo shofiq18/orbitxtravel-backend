@@ -120,6 +120,22 @@ const updateHotel = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getRoomAvailability = catchAsync(async (req: Request, res: Response) => {
+  const { roomId } = req.params;
+  const { checkIn, checkOut } = req.query;
+  const result = await HotelService.getRoomAvailability(
+    roomId as string,
+    checkIn as string,
+    checkOut as string
+  );
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Room availability checked successfully.',
+    data: result,
+  });
+});
+
 export const HotelController = {
   createHotel,
   getHotels,
@@ -129,4 +145,5 @@ export const HotelController = {
   blockRoomDates,
   getBlockedRoomDates,
   updateHotel,
+  getRoomAvailability,
 };

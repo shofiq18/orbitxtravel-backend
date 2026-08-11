@@ -18,6 +18,7 @@ const getVendorsQueue = async () => {
       vendorType: true,
       verificationDocUrl: true,
       businessProfile: true,
+      payoutDetails: true,
       createdAt: true,
     },
     orderBy: {
@@ -187,10 +188,59 @@ const releasePayout = async (payload: { hostId: string; amount: number; referenc
   return payoutTxn;
 };
 
+const getAllUsers = async () => {
+  const users = await prisma.user.findMany({
+    select: {
+      id: true,
+      email: true,
+      fullName: true,
+      roles: true,
+      currentRole: true,
+      isVerified: true,
+      vendorType: true,
+      isSuspended: true,
+      createdAt: true,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+  return users;
+};
+
+const toggleSuspendUser = async (userId: string, isSuspended: boolean) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    throw new AppError(404, 'User not found.');
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: { isSuspended },
+  });
+
+  await prisma.notification.create({
+    data: {
+      userId,
+      title: isSuspended ? 'Account Suspended' : 'Account Reinstated',
+      message: isSuspended
+        ? 'Your account has been suspended by the platform administrator. Access to list assets or checkout is restricted.'
+        : 'Your account suspension has been lifted by the platform administrator. Access is restored.',
+    },
+  });
+
+  return updatedUser;
+};
+
 export const AdminService = {
   getVendorsQueue,
   verifyVendor,
   getPlatformCommissions,
   getPayouts,
   releasePayout,
+  getAllUsers,
+  toggleSuspendUser,
 };

@@ -23,6 +23,14 @@ router.post(
   AdminController.releasePayout
 );
 
+router.get('/users', auth('admin'), AdminController.getAllUsers);
+router.patch(
+  '/users/:userId/suspend',
+  auth('admin'),
+  validateRequest(AdminValidation.suspendUserSchema),
+  AdminController.toggleSuspendUser
+);
+
 router.post('/pretrip-alerts', auth('admin'), AdminController.triggerPreTripAlerts);
 
 export const AdminRoutes = router;

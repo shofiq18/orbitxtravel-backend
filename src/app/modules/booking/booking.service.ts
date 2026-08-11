@@ -4,6 +4,7 @@ import config from '../../../config/index.js';
 import { generateVoucherPDF } from '../../utils/generateVoucher.js';
 import { sendSMS } from '../../utils/sendSMS.js';
 import { sendEmail } from '../../utils/sendEmail.js';
+import { triggerAutomaticPayout } from '../../utils/bkashPayout.js';
 
 const createBooking = async (travelerId: string, payload: any) => {
   const { packageId, seatsBooked, roomId, hotelId, roomQuantity, checkInDate, checkOutDate } = payload;
@@ -220,6 +221,9 @@ const payBooking = async (travelerId: string, bookingId: string, payload: { paym
       },
     });
 
+    // Trigger automatic payout disbursal simulation
+    await triggerAutomaticPayout(updatedBooking.id);
+
     return {
       id: updatedBooking.id,
       paymentTxnId: updatedBooking.paymentTxnId,
@@ -317,6 +321,9 @@ const payBooking = async (travelerId: string, bookingId: string, payload: { paym
 
   const travelerSMS = `orbitX Travel: Booking CONFIRMED! Reference: ${bookingId}. Tour: ${booking.package!.title}. Seats: ${booking.seatsBooked}. Download Voucher: ${updatedBooking.voucherUrl}`;
   await sendSMS(booking.traveler.email, travelerSMS);
+
+  // Trigger automatic payout disbursal simulation
+  await triggerAutomaticPayout(updatedBooking.id);
 
   const hostSMS = `orbitX Travel: New seat lock booking for your tour "${booking.package!.title}" by ${booking.traveler.fullName}. Seats: ${booking.seatsBooked}. Reference: ${bookingId}.`;
   await sendSMS(booking.package!.organizer.email, hostSMS);

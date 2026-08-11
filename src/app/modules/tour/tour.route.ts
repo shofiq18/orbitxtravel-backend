@@ -16,4 +16,17 @@ router.post(
 router.get('/', TourController.getPackages);
 router.get('/:id', TourController.getPackageById);
 
+router.patch(
+  '/:id',
+  auth('tour_organizer'),
+  validateRequest(TourValidation.updatePackageSchema),
+  TourController.updatePackage
+);
+
+router.delete(
+  '/:id',
+  auth('tour_organizer'),
+  TourController.deletePackage
+);
+
 export const TourRoutes = router;

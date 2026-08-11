@@ -42,9 +42,21 @@ const updateHotelSchema = z.object({
   }),
 });
 
+const updateRoomSchema = z.object({
+  body: z.object({
+    type: z.string().min(2, 'Room type is required (e.g. Deluxe Suite)').optional(),
+    amenities: z.array(z.string()).optional(),
+    photos: z.array(z.string().url()).optional(),
+    inventory: z.number().int().nonnegative('Inventory must be a positive integer').optional(),
+    b2cPrice: z.number().positive('B2C public price must be a positive number').optional(),
+    b2bPrice: z.number().positive('B2B wholesale price must be a positive number').optional(),
+  }),
+});
+
 export const HotelValidation = {
   createHotelSchema,
   updateHotelSchema,
   createRoomSchema,
+  updateRoomSchema,
   blockDatesSchema,
 };

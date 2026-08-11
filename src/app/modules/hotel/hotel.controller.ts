@@ -136,6 +136,42 @@ const getRoomAvailability = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const deleteHotel = catchAsync(async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  const { id } = req.params;
+  const result = await HotelService.deleteHotel(userId, id as string);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Hotel listed property deleted successfully.',
+    data: result,
+  });
+});
+
+const updateRoom = catchAsync(async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  const { roomId } = req.params;
+  const result = await HotelService.updateRoom(userId, roomId as string, req.body);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Room details updated successfully.',
+    data: result,
+  });
+});
+
+const deleteRoom = catchAsync(async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  const { roomId } = req.params;
+  const result = await HotelService.deleteRoom(userId, roomId as string);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Room deleted successfully.',
+    data: result,
+  });
+});
+
 export const HotelController = {
   createHotel,
   getHotels,
@@ -146,4 +182,7 @@ export const HotelController = {
   getBlockedRoomDates,
   updateHotel,
   getRoomAvailability,
+  deleteHotel,
+  updateRoom,
+  deleteRoom,
 };

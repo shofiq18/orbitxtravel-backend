@@ -66,6 +66,28 @@ const triggerPreTripAlerts = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getAllUsers = catchAsync(async (req: Request, res: Response) => {
+  const result = await AdminService.getAllUsers();
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'All users retrieved successfully.',
+    data: result,
+  });
+});
+
+const toggleSuspendUser = catchAsync(async (req: Request, res: Response) => {
+  const { userId } = req.params;
+  const { isSuspended } = req.body;
+  const result = await AdminService.toggleSuspendUser(userId as string, isSuspended);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: `User suspension status updated to: ${isSuspended ? 'SUSPENDED' : 'ACTIVE'}.`,
+    data: result,
+  });
+});
+
 export const AdminController = {
   getVendorsQueue,
   verifyVendor,
@@ -73,4 +95,6 @@ export const AdminController = {
   getPayouts,
   releasePayout,
   triggerPreTripAlerts,
+  getAllUsers,
+  toggleSuspendUser,
 };

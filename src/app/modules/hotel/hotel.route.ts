@@ -34,6 +34,19 @@ router.post(
 
 router.get('/:hotelId/rooms', HotelController.getRooms);
 
+router.patch(
+  '/rooms/:roomId',
+  auth('hotel_owner'),
+  validateRequest(HotelValidation.updateRoomSchema),
+  HotelController.updateRoom
+);
+
+router.delete(
+  '/rooms/:roomId',
+  auth('hotel_owner'),
+  HotelController.deleteRoom
+);
+
 // Calendar availability blockers
 router.post(
   '/rooms/:roomId/block-dates',
@@ -44,6 +57,7 @@ router.post(
 
 router.get('/rooms/:roomId/blocked-dates', HotelController.getBlockedRoomDates);
 router.get('/rooms/:roomId/availability', HotelController.getRoomAvailability);
-router.get('/rooms/:roomId/availability', HotelController.getRoomAvailability);
+
+router.delete('/:id', auth('hotel_owner'), HotelController.deleteHotel);
 
 export const HotelRoutes = router;

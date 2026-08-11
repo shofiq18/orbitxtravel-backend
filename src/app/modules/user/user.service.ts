@@ -143,6 +143,10 @@ const loginUser = async (payload: any) => {
     throw new AppError(401, 'Invalid email or password.');
   }
 
+  if (user.isSuspended) {
+    throw new AppError(403, 'Your account is suspended. Please contact administration.');
+  }
+
   if (!user.isEmailVerified) {
     throw new AppError(400, 'Please verify your email before logging in.');
   }

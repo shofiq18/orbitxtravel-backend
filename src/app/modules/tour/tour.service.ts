@@ -151,8 +151,13 @@ const getPackages = async (filters: {
   maxPrice?: string;
   verifiedOnly?: string;
   startDate?: string;
+  organizerId?: string;
 }) => {
   const whereConditions: any = {};
+
+  if (filters.organizerId) {
+    whereConditions.organizerId = filters.organizerId;
+  }
 
   if (filters.destination) {
     whereConditions.destination = {
@@ -182,10 +187,13 @@ const getPackages = async (filters: {
   }
 
   // Active packages filter (only show packages that haven't departed yet)
-  whereConditions.startDate = {
-    ...whereConditions.startDate,
-    gte: new Date(),
-  };
+  // Skip this check if looking up packages for a specific organizer (they need to see all their tours)
+  if (!filters.organizerId) {
+    whereConditions.startDate = {
+      ...whereConditions.startDate,
+      gte: new Date(),
+    };
+  }
 
   const packages = await prisma.package.findMany({
     where: whereConditions,
@@ -251,8 +259,102 @@ const getPackageById = async (id: string) => {
   return tourPackage;
 };
 
+const updatePackage = async (id: string, organizerId: string, payload: any) => {
+  const tourPackage = await prisma.package.findUnique({
+    where: { id },
+  });
+
+  if (!tourPackage) {
+    throw new AppError(404, 'Tour package not found.');
+  }
+
+  if (tourPackage.organizerId !== organizerId) {
+    throw new AppError(403, 'Forbidden: You do not own this tour package.');
+  }
+
+  const {
+    title,
+    destination,
+    startDate,
+    endDate,
+    maxSeats,
+    inclusions,
+    totalPackagePrice,
+    minimumSeatLockFee,
+    itinerary,
+  } = payload;
+
+  let calculatedAvailableSeats = undefined;
+  if (maxSeats !== undefined) {
+    const bookedSeatsCount = await prisma.booking.aggregate({
+      where: {
+        packageId: id,
+        paymentStatus: 'PAID',
+      },
+      _sum: {
+        seatsBooked: true,
+      },
+    });
+    const totalBooked = bookedSeatsCount._sum.seatsBooked || 0;
+    calculatedAvailableSeats = Math.max(0, Number(maxSeats) - totalBooked);
+  }
+
+  const result = await prisma.package.update({
+    where: { id },
+    data: {
+      title,
+      destination,
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+      maxSeats: maxSeats !== undefined ? Number(maxSeats) : undefined,
+      availableSeats: calculatedAvailableSeats,
+      inclusions,
+      totalPackagePrice: totalPackagePrice !== undefined ? Number(totalPackagePrice) : undefined,
+      minimumSeatLockFee: minimumSeatLockFee !== undefined ? Number(minimumSeatLockFee) : undefined,
+      itinerary: itinerary || undefined,
+    },
+  });
+
+  return result;
+};
+
+const deletePackage = async (id: string, organizerId: string) => {
+  const tourPackage = await prisma.package.findUnique({
+    where: { id },
+  });
+
+  if (!tourPackage) {
+    throw new AppError(404, 'Tour package not found.');
+  }
+
+  if (tourPackage.organizerId !== organizerId) {
+    throw new AppError(403, 'Forbidden: You do not own this tour package.');
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Release/Delete associated room locks
+    await tx.roomLock.deleteMany({
+      where: { packageId: id },
+    });
+
+    // 2. Delete associated bookings
+    await tx.booking.deleteMany({
+      where: { packageId: id },
+    });
+
+    // 3. Delete the package
+    await tx.package.delete({
+      where: { id },
+    });
+  });
+
+  return { success: true, message: 'Tour package and all associated holds/bookings deleted successfully.' };
+};
+
 export const TourService = {
   createPackage,
   getPackages,
   getPackageById,
+  updatePackage,
+  deletePackage,
 };

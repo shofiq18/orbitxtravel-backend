@@ -59,6 +59,7 @@ model User {
   vendorType            Role?     // hotel_owner or tour_organizer
   businessProfile       Json?     // { businessName, address, licenseNumber, etc. }
   payoutDetails         Json?     // { bankName, accountNumber, branch, bkashNumber, nagadNumber }
+  isSuspended           Boolean   @default(false)
 
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt

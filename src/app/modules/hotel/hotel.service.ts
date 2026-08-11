@@ -245,6 +245,93 @@ const getRoomAvailability = async (roomId: string, checkInDate: string, checkOut
   };
 };
 
+const deleteHotel = async (userId: string, hotelId: string) => {
+  const hotel = await prisma.hotel.findUnique({ where: { id: hotelId } });
+  if (!hotel) {
+    throw new AppError(404, 'Hotel not found.');
+  }
+
+  if (hotel.ownerId !== userId) {
+    throw new AppError(403, 'Forbidden: You do not own this hotel listing.');
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Get room IDs associated with this hotel
+    const rooms = await tx.room.findMany({ where: { hotelId } });
+    const roomIds = rooms.map(r => r.id);
+
+    // 2. Delete blocked dates
+    await tx.blockedDate.deleteMany({
+      where: { roomId: { in: roomIds } }
+    });
+
+    // 3. Delete room locks
+    await tx.roomLock.deleteMany({
+      where: { roomId: { in: roomIds } }
+    });
+
+    // 4. Delete bookings associated with rooms in this hotel
+    await tx.booking.deleteMany({
+      where: { roomId: { in: roomIds } }
+    });
+
+    // 5. Delete rooms
+    await tx.room.deleteMany({
+      where: { hotelId }
+    });
+
+    // 6. Delete the hotel
+    await tx.hotel.delete({
+      where: { id: hotelId }
+    });
+  });
+
+  return { success: true, message: 'Hotel and associated rooms/holds/bookings deleted successfully.' };
+};
+
+const updateRoom = async (userId: string, roomId: string, payload: any) => {
+  const room = await prisma.room.findUnique({
+    where: { id: roomId },
+    include: { hotel: true },
+  });
+
+  if (!room) {
+    throw new AppError(404, 'Room not found.');
+  }
+
+  if (room.hotel.ownerId !== userId) {
+    throw new AppError(403, 'Forbidden: You do not own the hotel associated with this room.');
+  }
+
+  const updatedRoom = await prisma.room.update({
+    where: { id: roomId },
+    data: payload,
+  });
+
+  return updatedRoom;
+};
+
+const deleteRoom = async (userId: string, roomId: string) => {
+  const room = await prisma.room.findUnique({
+    where: { id: roomId },
+    include: { hotel: true },
+  });
+
+  if (!room) {
+    throw new AppError(404, 'Room not found.');
+  }
+
+  if (room.hotel.ownerId !== userId) {
+    throw new AppError(403, 'Forbidden: You do not own the hotel associated with this room.');
+  }
+
+  await prisma.room.delete({
+    where: { id: roomId },
+  });
+
+  return { success: true, message: 'Room deleted successfully.' };
+};
+
 export const HotelService = {
   createHotel,
   getHotels,
@@ -255,4 +342,7 @@ export const HotelService = {
   getBlockedDates,
   updateHotel,
   getRoomAvailability,
+  deleteHotel,
+  updateRoom,
+  deleteRoom,
 };

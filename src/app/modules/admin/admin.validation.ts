@@ -14,7 +14,14 @@ const releasePayoutSchema = z.object({
   }),
 });
 
+const suspendUserSchema = z.object({
+  body: z.object({
+    isSuspended: z.boolean(),
+  }),
+});
+
 export const AdminValidation = {
   verifyVendorSchema,
   releasePayoutSchema,
+  suspendUserSchema,
 };

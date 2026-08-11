@@ -21,6 +21,7 @@ const getPackages = catchAsync(async (req: Request, res: Response) => {
     maxPrice: req.query.maxPrice as string,
     verifiedOnly: req.query.verifiedOnly as string,
     startDate: req.query.startDate as string,
+    organizerId: req.query.organizerId as string,
   };
   const result = await TourService.getPackages(filters);
   sendResponse(res, {
@@ -41,8 +42,32 @@ const getPackageById = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const updatePackage = catchAsync(async (req: Request, res: Response) => {
+  const organizerId = (req as any).user.id;
+  const result = await TourService.updatePackage(req.params.id as string, organizerId, req.body);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Tour package updated successfully.',
+    data: result,
+  });
+});
+
+const deletePackage = catchAsync(async (req: Request, res: Response) => {
+  const organizerId = (req as any).user.id;
+  const result = await TourService.deletePackage(req.params.id as string, organizerId);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Tour package deleted successfully.',
+    data: result,
+  });
+});
+
 export const TourController = {
   createPackage,
   getPackages,
   getPackageById,
+  updatePackage,
+  deletePackage,
 };

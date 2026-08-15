@@ -318,6 +318,100 @@ const updateProfile = async (userId: string, payload: any) => {
   return updatedUser;
 };
 
+const changePassword = async (userId: string, payload: { oldPassword: string; newPassword: string }) => {
+  const { oldPassword, newPassword } = payload;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    throw new AppError(404, 'User not found.');
+  }
+
+  const isPasswordMatched = await bcrypt.compare(oldPassword, user.password);
+  if (!isPasswordMatched) {
+    throw new AppError(400, 'Current password is incorrect.');
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      password: hashedPassword,
+    },
+  });
+
+  return { message: 'Password changed successfully!' };
+};
+
+const forgotPassword = async (email: string) => {
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!user) {
+    throw new AppError(404, 'User not found with this email address.');
+  }
+
+  const otp = generateOTP();
+  console.log(`\n🔑 [RESET OTP GENERATED] for user (${email}): ${otp}\n`);
+  const otpExpiry = new Date(Date.now() + config.otp_expiry_minutes * 60 * 1000);
+
+  await prisma.user.update({
+    where: { email },
+    data: {
+      resetPasswordOtp: otp,
+      resetPasswordOtpExpiry: otpExpiry,
+    },
+  });
+
+  const emailBody = `
+    <h1>Reset Your Password - OrbitX Travel</h1>
+    <p>Dear ${user.fullName},</p>
+    <p>You requested a password reset. Please use the following One-Time Password (OTP) code to reset your password:</p>
+    <div class="otp-code">${otp}</div>
+    <p>This code is valid for ${config.otp_expiry_minutes} minutes. If you did not request this, please ignore this email.</p>
+  `;
+  await sendEmail(email, 'Reset Your Password - OrbitX Travel', emailBody);
+
+  return { message: 'Password reset OTP sent successfully to your email.' };
+};
+
+const resetPassword = async (payload: { email: string; otp: string; newPassword: string }) => {
+  const { email, otp, newPassword } = payload;
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!user) {
+    throw new AppError(404, 'User not found.');
+  }
+
+  if (!user.resetPasswordOtp || user.resetPasswordOtp !== otp) {
+    throw new AppError(400, 'Invalid OTP code.');
+  }
+
+  if (!user.resetPasswordOtpExpiry || new Date() > user.resetPasswordOtpExpiry) {
+    throw new AppError(400, 'OTP code has expired. Please request a new one.');
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+  await prisma.user.update({
+    where: { email },
+    data: {
+      password: hashedPassword,
+      resetPasswordOtp: null,
+      resetPasswordOtpExpiry: null,
+    },
+  });
+
+  return { message: 'Password reset successfully! You can now log in with your new password.' };
+};
+
 export const UserService = {
   signupUser,
   verifyEmail,
@@ -327,4 +421,7 @@ export const UserService = {
   switchRole,
   getProfile,
   updateProfile,
+  changePassword,
+  forgotPassword,
+  resetPassword,
 };

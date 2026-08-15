@@ -10,6 +10,8 @@ const router = express.Router();
 router.post('/signup', validateRequest(UserValidation.signupSchema), UserController.signup);
 router.post('/verify-email', validateRequest(UserValidation.verifyEmailSchema), UserController.verifyEmail);
 router.post('/resend-otp', validateRequest(UserValidation.resendOtpSchema), UserController.resendOtp);
+router.post('/forgot-password', validateRequest(UserValidation.forgotPasswordSchema), UserController.forgotPassword);
+router.post('/reset-password', validateRequest(UserValidation.resetPasswordSchema), UserController.resetPassword);
 router.post('/login', validateRequest(UserValidation.loginSchema), UserController.login);
 
 // Private authenticated routes

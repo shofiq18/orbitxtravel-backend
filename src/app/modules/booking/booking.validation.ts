@@ -24,7 +24,9 @@ const createBookingSchema = z.object({
 
 const payBookingSchema = z.object({
   body: z.object({
-    paymentMethod: z.enum(['bkash', 'nagad', 'card']),
+    paymentMethod: z.enum(['bkash', 'nagad', 'card', 'cod']),
+    senderNumber: z.string().optional(),
+    transactionId: z.string().optional(),
   }),
 });
 

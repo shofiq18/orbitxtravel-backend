@@ -2,6 +2,7 @@ import { Role } from '@prisma/client';
 import prisma from '../../utils/prisma.js';
 import AppError from '../../utils/AppError.js';
 import { sendEmail } from '../../utils/sendEmail.js';
+import { BookingService } from '../booking/booking.service.js';
 
 const getVendorsQueue = async () => {
   const vendors = await prisma.user.findMany({
@@ -49,12 +50,10 @@ const verifyVendor = async (userId: string, isVerified: boolean) => {
     let updatedRoles = [...user.roles];
     
     if (isVerified) {
-      // Append the vendor type role (hotel_owner or tour_organizer) to user's roles array if not already present
       if (!updatedRoles.includes(vendorType)) {
         updatedRoles.push(vendorType);
       }
     } else {
-      // If rejected, remove it
       updatedRoles = updatedRoles.filter((r) => r !== vendorType);
     }
 
@@ -63,13 +62,11 @@ const verifyVendor = async (userId: string, isVerified: boolean) => {
       data: {
         isVerified,
         roles: updatedRoles,
-        // Set currentRole to vendorType immediately if verified
         currentRole: isVerified ? vendorType : 'traveler',
         vendorType: isVerified ? vendorType : null,
       },
     });
 
-    // If verified, verify all their existing hotels or packages
     if (isVerified) {
       if (vendorType === 'hotel_owner') {
         await tx.hotel.updateMany({
@@ -87,7 +84,6 @@ const verifyVendor = async (userId: string, isVerified: boolean) => {
     return updated;
   });
 
-  // Dispatch System Notification
   await prisma.notification.create({
     data: {
       userId,
@@ -98,7 +94,6 @@ const verifyVendor = async (userId: string, isVerified: boolean) => {
     },
   });
 
-  // Dispatch Email Notification
   const statusLabel = isVerified ? 'APPROVED' : 'REJECTED';
   const emailBody = `
     <h1>orbitX Travel Vendor Application ${statusLabel}</h1>
@@ -115,6 +110,71 @@ const verifyVendor = async (userId: string, isVerified: boolean) => {
   await sendEmail(user.email, `orbitX Travel Vendor Profile ${statusLabel}`, emailBody);
 
   return updatedUser;
+};
+
+const getPendingPayments = async () => {
+  return await BookingService.getPendingPaymentsForAdmin();
+};
+
+const verifyPayment = async (bookingId: string, action: 'APPROVE' | 'REJECT', reason?: string) => {
+  return await BookingService.verifyPaymentByAdmin(bookingId, action, reason);
+};
+
+const getEscrowBookings = async () => {
+  const confirmedBookings = await prisma.booking.findMany({
+    where: {
+      paymentStatus: 'PAID',
+      bookingStatus: 'CONFIRMED',
+    },
+    include: {
+      traveler: {
+        select: { id: true, fullName: true, email: true }
+      },
+      package: {
+        include: { organizer: true }
+      },
+      room: {
+        include: {
+          hotel: { include: { owner: true } }
+        }
+      }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+
+  const disbursedPayouts = await prisma.transaction.findMany({
+    where: { type: 'HOST_PAYOUT' },
+    select: { referenceId: true, amount: true }
+  });
+
+  const disbursedMap = new Map<string, number>();
+  disbursedPayouts.forEach((p) => {
+    if (p.referenceId) {
+      const current = disbursedMap.get(p.referenceId) || 0;
+      disbursedMap.set(p.referenceId, current + p.amount);
+    }
+  });
+
+  const commissionRate = Number(process.env.PLATFORM_COMMISSION_RATE) || 0.10;
+
+  return confirmedBookings.map((b) => {
+    const hostUser = b.package?.organizer || b.room?.hotel?.owner;
+    const platformCommission = b.paidAmount * commissionRate;
+    const netHostShare = b.paidAmount - platformCommission;
+    const alreadyDisbursed = disbursedMap.get(b.id) || 0;
+    const remainingDisbursalDue = Math.max(0, netHostShare - alreadyDisbursed);
+    const isFullyDisbursed = remainingDisbursalDue <= 0;
+
+    return {
+      ...b,
+      hostUser,
+      platformCommission,
+      netHostShare,
+      alreadyDisbursed,
+      remainingDisbursalDue,
+      isFullyDisbursed,
+    };
+  });
 };
 
 const getPlatformCommissions = async () => {
@@ -238,6 +298,9 @@ const toggleSuspendUser = async (userId: string, isSuspended: boolean) => {
 export const AdminService = {
   getVendorsQueue,
   verifyVendor,
+  getPendingPayments,
+  verifyPayment,
+  getEscrowBookings,
   getPlatformCommissions,
   getPayouts,
   releasePayout,

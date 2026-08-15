@@ -44,7 +44,24 @@ const getReviewsByHotelId = async (hotelId: string) => {
   return reviews;
 };
 
+const getAllReviews = async () => {
+  const reviews = await prisma.review.findMany({
+    include: {
+      hotel: {
+        select: {
+          name: true,
+          address: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+  });
+  return reviews;
+};
+
 export const ReviewService = {
   createReview,
-  getReviewsByHotelId
+  getReviewsByHotelId,
+  getAllReviews,
 };

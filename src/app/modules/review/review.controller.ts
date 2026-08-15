@@ -15,8 +15,8 @@ const createReview = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getReviewsByHotelId = catchAsync(async (req: Request, res: Response) => {
-  const hotelId = req.params.hotelId as string;
-  const result = await ReviewService.getReviewsByHotelId(hotelId);
+  const { hotelId } = req.params;
+  const result = await ReviewService.getReviewsByHotelId(hotelId as string);
   sendResponse(res, {
     statusCode: 200,
     success: true,
@@ -25,7 +25,18 @@ const getReviewsByHotelId = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getAllReviews = catchAsync(async (req: Request, res: Response) => {
+  const result = await ReviewService.getAllReviews();
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'All traveler reviews retrieved successfully.',
+    data: result,
+  });
+});
+
 export const ReviewController = {
   createReview,
-  getReviewsByHotelId
+  getReviewsByHotelId,
+  getAllReviews,
 };

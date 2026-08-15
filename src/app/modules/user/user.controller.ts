@@ -121,6 +121,26 @@ const uploadFile = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const forgotPassword = catchAsync(async (req: Request, res: Response) => {
+  const result = await UserService.forgotPassword(req.body.email);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
+
+const resetPassword = catchAsync(async (req: Request, res: Response) => {
+  const result = await UserService.resetPassword(req.body);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
+
 export const UserController = {
   signup,
   verifyEmail,
@@ -131,4 +151,6 @@ export const UserController = {
   getProfile,
   updateProfile,
   uploadFile,
+  forgotPassword,
+  resetPassword,
 };

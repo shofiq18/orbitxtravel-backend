@@ -6,6 +6,13 @@ const verifyVendorSchema = z.object({
   }),
 });
 
+const verifyPaymentSchema = z.object({
+  body: z.object({
+    action: z.enum(['APPROVE', 'REJECT']),
+    reason: z.string().optional(),
+  }),
+});
+
 const releasePayoutSchema = z.object({
   body: z.object({
     hostId: z.string().uuid('Invalid Host User ID'),
@@ -22,6 +29,7 @@ const suspendUserSchema = z.object({
 
 export const AdminValidation = {
   verifyVendorSchema,
+  verifyPaymentSchema,
   releasePayoutSchema,
   suspendUserSchema,
 };

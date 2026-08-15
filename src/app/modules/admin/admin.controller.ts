@@ -26,6 +26,38 @@ const verifyVendor = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getPendingPayments = catchAsync(async (req: Request, res: Response) => {
+  const result = await AdminService.getPendingPayments();
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Pending bKash payment verification requests retrieved successfully.',
+    data: result,
+  });
+});
+
+const verifyPayment = catchAsync(async (req: Request, res: Response) => {
+  const { bookingId } = req.params;
+  const { action, reason } = req.body;
+  const result = await AdminService.verifyPayment(bookingId as string, action, reason);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: `Payment verification status updated: ${action}.`,
+    data: result,
+  });
+});
+
+const getEscrowBookings = catchAsync(async (req: Request, res: Response) => {
+  const result = await AdminService.getEscrowBookings();
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Escrow held bookings retrieved successfully.',
+    data: result,
+  });
+});
+
 const getCommissions = catchAsync(async (req: Request, res: Response) => {
   const result = await AdminService.getPlatformCommissions();
   sendResponse(res, {
@@ -61,7 +93,7 @@ const triggerPreTripAlerts = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: `Pre-trip alerts scanned successfully. Dispatched ${result.sentCount} SMS reminders.`,
+    message: `Pre-trip alerts scanned successfully. Dispatched ${result.sentCount} email reminders.`,
     data: result,
   });
 });
@@ -91,6 +123,9 @@ const toggleSuspendUser = catchAsync(async (req: Request, res: Response) => {
 export const AdminController = {
   getVendorsQueue,
   verifyVendor,
+  getPendingPayments,
+  verifyPayment,
+  getEscrowBookings,
   getCommissions,
   getPayouts,
   releasePayout,

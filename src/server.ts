@@ -1,7 +1,7 @@
 import { Server } from 'http';
 import app from './app.js';
 import config from './config/index.js';
-import { seedAdmin } from './app/utils/seed.js';
+import { seedAdmin, seedReviews } from './app/utils/seed.js';
 
 async function bootstrap() {
   let server: Server;
@@ -9,6 +9,7 @@ async function bootstrap() {
   try {
     // Seed default Admin on startup
     await seedAdmin();
+    await seedReviews();
 
     // Start Express Server
     server = app.listen(config.port, () => {

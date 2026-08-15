@@ -53,6 +53,20 @@ const switchRoleSchema = z.object({
   }),
 });
 
+const forgotPasswordSchema = z.object({
+  body: z.object({
+    email: z.string().email('Invalid email address'),
+  }),
+});
+
+const resetPasswordSchema = z.object({
+  body: z.object({
+    email: z.string().email('Invalid email address'),
+    otp: z.string().length(6, 'OTP must be 6 digits'),
+    newPassword: z.string().min(6, 'Password must be at least 6 characters long'),
+  }),
+});
+
 export const UserValidation = {
   signupSchema,
   loginSchema,
@@ -60,4 +74,6 @@ export const UserValidation = {
   resendOtpSchema,
   becomeVendorSchema,
   switchRoleSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 };

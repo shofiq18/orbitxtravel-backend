@@ -141,6 +141,17 @@ const resetPassword = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const changePassword = catchAsync(async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  const result = await UserService.changePassword(userId, req.body);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
+
 export const UserController = {
   signup,
   verifyEmail,
@@ -153,4 +164,5 @@ export const UserController = {
   uploadFile,
   forgotPassword,
   resetPassword,
+  changePassword,
 };

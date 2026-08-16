@@ -27,9 +27,16 @@ const suspendUserSchema = z.object({
   }),
 });
 
+const updateCommissionRateSchema = z.object({
+  body: z.object({
+    ratePercentage: z.number().min(0, "Commission rate cannot be negative").max(100, "Commission rate cannot exceed 100%"),
+  }),
+});
+
 export const AdminValidation = {
   verifyVendorSchema,
   verifyPaymentSchema,
   releasePayoutSchema,
   suspendUserSchema,
+  updateCommissionRateSchema,
 };

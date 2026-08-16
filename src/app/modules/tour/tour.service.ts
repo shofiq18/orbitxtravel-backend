@@ -211,7 +211,36 @@ const getPackages = async (filters: {
     },
   });
 
-  return packages;
+  // Dynamically compute availableSeats for each package based on active bookings
+  const packagesWithSeats = await Promise.all(
+    packages.map(async (pkg) => {
+      const bookingsAgg = await prisma.booking.aggregate({
+        where: {
+          packageId: pkg.id,
+          bookingStatus: { not: 'CANCELLED' },
+        },
+        _sum: {
+          seatsBooked: true,
+        },
+      });
+      const bookedCount = bookingsAgg._sum.seatsBooked || 0;
+      const availableSeats = Math.max(0, pkg.maxSeats - bookedCount);
+
+      if (pkg.availableSeats !== availableSeats) {
+        await prisma.package.update({
+          where: { id: pkg.id },
+          data: { availableSeats },
+        }).catch(() => {});
+      }
+
+      return {
+        ...pkg,
+        availableSeats,
+      };
+    })
+  );
+
+  return packagesWithSeats;
 };
 
 const getPackageById = async (id: string) => {
@@ -256,7 +285,29 @@ const getPackageById = async (id: string) => {
     throw new AppError(404, 'Tour package not found.');
   }
 
-  return tourPackage;
+  const bookingsAgg = await prisma.booking.aggregate({
+    where: {
+      packageId: id,
+      bookingStatus: { not: 'CANCELLED' },
+    },
+    _sum: {
+      seatsBooked: true,
+    },
+  });
+  const bookedCount = bookingsAgg._sum.seatsBooked || 0;
+  const availableSeats = Math.max(0, tourPackage.maxSeats - bookedCount);
+
+  if (tourPackage.availableSeats !== availableSeats) {
+    await prisma.package.update({
+      where: { id },
+      data: { availableSeats },
+    }).catch(() => {});
+  }
+
+  return {
+    ...tourPackage,
+    availableSeats,
+  };
 };
 
 const updatePackage = async (id: string, organizerId: string, payload: any) => {

@@ -71,6 +71,7 @@ model User {
   notifications         Notification[]
   transactionsSent      Transaction[] @relation("TxnSender")
   transactionsReceived  Transaction[] @relation("TxnReceiver")
+  advancePayoutRequests AdvancePayoutRequest[]
 }
 
 model Hotel {
@@ -88,9 +89,10 @@ model Hotel {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  rooms        Room[]
-  reviews      Review[]
-  bookings     Booking[]
+  rooms                 Room[]
+  reviews               Review[]
+  bookings              Booking[]
+  advancePayoutRequests AdvancePayoutRequest[]
 }
 
 model Room {
@@ -106,9 +108,10 @@ model Room {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  blockedDates BlockedDate[]
-  lockedRooms  RoomLock[]
-  bookings     Booking[]
+  blockedDates          BlockedDate[]
+  lockedRooms           RoomLock[]
+  bookings              Booking[]
+  advancePayoutRequests AdvancePayoutRequest[]
 }
 
 model BlockedDate {
@@ -153,8 +156,9 @@ model Package {
   createdAt           DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
 
-  lockedRooms         RoomLock[]
-  bookings            Booking[]
+  lockedRooms           RoomLock[]
+  bookings              Booking[]
+  advancePayoutRequests AdvancePayoutRequest[]
 }
 
 model Booking {
@@ -219,3 +223,33 @@ model Review {
   comment   String
   createdAt DateTime @default(now())
 }
+
+model AdvancePayoutRequest {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userRole        Role
+  packageId       String?
+  package         Package? @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  hotelId         String?
+  hotel           Hotel?   @relation(fields: [hotelId], references: [id], onDelete: SetNull)
+  roomId          String?
+  room            Room?    @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  requestedAmount Float
+  disbursedAmount Float    @default(0)
+  reason          String
+  status          String   @default("PENDING") // PENDING, APPROVED, REJECTED, DISBURSED
+  adminNote       String?
+  transactionId   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+

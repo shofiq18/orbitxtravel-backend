@@ -4,6 +4,7 @@ import config from '../../../config/index.js';
 import { generateVoucherPDF } from '../../utils/generateVoucher.js';
 import { sendSMS } from '../../utils/sendSMS.js';
 import { sendEmail } from '../../utils/sendEmail.js';
+import { AdminService } from '../admin/admin.service.js';
 
 const createBooking = async (travelerId: string, payload: any) => {
   const { packageId, seatsBooked, roomId, hotelId, roomQuantity, checkInDate, checkOutDate } = payload;
@@ -91,10 +92,23 @@ const createBooking = async (travelerId: string, payload: any) => {
     throw new AppError(400, 'Cannot book a tour package that has already departed.');
   }
 
-  if (tourPackage.availableSeats < seatsBooked) {
+  const activeBookingsAgg = await prisma.booking.aggregate({
+    where: {
+      packageId,
+      bookingStatus: { not: 'CANCELLED' },
+    },
+    _sum: {
+      seatsBooked: true,
+    },
+  });
+
+  const currentReservedSeats = activeBookingsAgg._sum.seatsBooked || 0;
+  const realAvailableSeats = Math.max(0, tourPackage.maxSeats - currentReservedSeats);
+
+  if (realAvailableSeats < seatsBooked) {
     throw new AppError(
       400,
-      `Not enough available seats. Requested: ${seatsBooked}, Available: ${tourPackage.availableSeats}`
+      `Not enough available seats. Requested: ${seatsBooked}, Available: ${realAvailableSeats}`
     );
   }
 
@@ -302,13 +316,28 @@ const verifyPaymentByAdmin = async (bookingId: string, action: 'APPROVE' | 'REJE
       throw new AppError(400, 'Selected room category is no longer available.');
     }
 
+    const commissionRate = await AdminService.getCommissionRate();
+    const platformCommission = booking.totalAmount * commissionRate;
+    const netHostEscrowShare = Math.max(0, booking.paidAmount - platformCommission);
+
     const updated = await prisma.$transaction(async (tx) => {
       await tx.transaction.create({
         data: {
           type: 'SEAT_LOCK',
-          amount: booking.paidAmount,
+          amount: netHostEscrowShare,
           senderId: booking.travelerId,
           receiverId: booking.room!.hotel.ownerId,
+          referenceId: booking.id,
+          status: 'COMPLETED',
+        },
+      });
+
+      await tx.transaction.create({
+        data: {
+          type: 'PLATFORM_COMMISSION',
+          amount: platformCommission,
+          senderId: booking.room!.hotel.ownerId,
+          receiverId: null,
           referenceId: booking.id,
           status: 'COMPLETED',
         },
@@ -344,29 +373,48 @@ const verifyPaymentByAdmin = async (bookingId: string, action: 'APPROVE' | 'REJE
   }
 
   // Tour Package verification
-  if (booking.package && booking.package.availableSeats < (booking.seatsBooked || 0)) {
-    throw new AppError(400, 'Seats are no longer available for this tour package.');
+  const otherConfirmedBookingsAgg = await prisma.booking.aggregate({
+    where: {
+      packageId: booking.packageId!,
+      id: { not: booking.id },
+      bookingStatus: { not: 'CANCELLED' },
+    },
+    _sum: {
+      seatsBooked: true,
+    },
+  });
+
+  const otherReservedSeats = otherConfirmedBookingsAgg._sum.seatsBooked || 0;
+  const maxCapacity = booking.package?.maxSeats || 20;
+  const realAvailableSeats = Math.max(0, maxCapacity - otherReservedSeats);
+
+  if (realAvailableSeats < (booking.seatsBooked || 0)) {
+    throw new AppError(
+      400,
+      `Seats are no longer available for this tour package. Total Capacity: ${maxCapacity}, Already Booked: ${otherReservedSeats}, Requested: ${booking.seatsBooked || 0}`
+    );
   }
 
+  const updatedAvailableSeatsInDb = Math.max(0, maxCapacity - (otherReservedSeats + (booking.seatsBooked || 0)));
+
+  const commissionRate = await AdminService.getCommissionRate();
+  const platformCommission = booking.totalAmount * commissionRate;
+  const netHostEscrowShare = Math.max(0, booking.paidAmount - platformCommission);
+
   const updated = await prisma.$transaction(async (tx) => {
-    // 1. Decrement package seats
+    // 1. Update package availableSeats column to synced value
     await tx.package.update({
       where: { id: booking.packageId! },
       data: {
-        availableSeats: {
-          decrement: booking.seatsBooked!,
-        },
+        availableSeats: updatedAvailableSeatsInDb,
       },
     });
 
-    // 2. Compute commission retention
-    const platformCommission = booking.paidAmount * config.platform_commission_rate;
-
-    // 3. Create transactions ledger logs
+    // 2. Create transactions ledger logs
     await tx.transaction.create({
       data: {
         type: 'SEAT_LOCK',
-        amount: booking.paidAmount,
+        amount: netHostEscrowShare,
         senderId: booking.travelerId,
         receiverId: booking.package!.organizerId,
         referenceId: booking.id,

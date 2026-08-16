@@ -120,7 +120,93 @@ const toggleSuspendUser = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const createAdvanceRequest = catchAsync(async (req: Request, res: Response) => {
+  const userId = (req as any).user?.id;
+  const result = await AdminService.createAdvanceRequest(userId as string, req.body);
+  sendResponse(res, {
+    statusCode: 201,
+    success: true,
+    message: 'Advance payout request submitted successfully to Admin for review.',
+    data: result,
+  });
+});
+
+const getMyAdvanceRequests = catchAsync(async (req: Request, res: Response) => {
+  const userId = (req as any).user?.id;
+  const result = await AdminService.getMyAdvanceRequests(userId as string);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'My advance payout requests retrieved successfully.',
+    data: result,
+  });
+});
+
+const getAllAdvanceRequests = catchAsync(async (req: Request, res: Response) => {
+  const result = await AdminService.getAllAdvanceRequests();
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'All advance payout requests retrieved successfully.',
+    data: result,
+  });
+});
+
+const inspectAndDisburseAdvance = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const result = await AdminService.inspectAndDisburseAdvance(id as string, req.body);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: `Advance request status updated to: ${req.body.status}.`,
+    data: result,
+  });
+});
+
+const getMilestoneDisbursals = catchAsync(async (req: Request, res: Response) => {
+  const result = await AdminService.getMilestoneDisbursals();
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Milestone disbursal targets retrieved successfully.',
+    data: result,
+  });
+});
+
+const disburseFinalMilestonePayout = catchAsync(async (req: Request, res: Response) => {
+  const result = await AdminService.disburseFinalMilestonePayout(req.body);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Final milestone payout disbursed successfully.',
+    data: result,
+  });
+});
+
+const getCommissionRate = catchAsync(async (req: Request, res: Response) => {
+  const result = await AdminService.getCommissionRateInfo();
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Commission rate retrieved successfully.',
+    data: result,
+  });
+});
+
+const updateCommissionRate = catchAsync(async (req: Request, res: Response) => {
+  const { ratePercentage } = req.body;
+  const result = await AdminService.updateCommissionRate(Number(ratePercentage));
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: `Commission rate updated successfully to ${ratePercentage}%.`,
+    data: result,
+  });
+});
+
 export const AdminController = {
+  getCommissionRate,
+  updateCommissionRate,
   getVendorsQueue,
   verifyVendor,
   getPendingPayments,
@@ -132,4 +218,10 @@ export const AdminController = {
   triggerPreTripAlerts,
   getAllUsers,
   toggleSuspendUser,
+  createAdvanceRequest,
+  getMyAdvanceRequests,
+  getAllAdvanceRequests,
+  inspectAndDisburseAdvance,
+  getMilestoneDisbursals,
+  disburseFinalMilestonePayout,
 };

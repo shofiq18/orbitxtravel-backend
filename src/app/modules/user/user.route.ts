@@ -38,4 +38,11 @@ router.post(
   UserController.uploadFile
 );
 
+router.post(
+  '/change-password',
+  auth(),
+  validateRequest(UserValidation.changePasswordSchema),
+  UserController.changePassword
+);
+
 export const UserRoutes = router;

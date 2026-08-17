@@ -1,6 +1,8 @@
 import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
+import config from '../../config/index.js';
+import { uploadToCloudinary } from './upload.js';
 
 export const generateVoucherPDF = async (
   booking: any,
@@ -9,17 +11,37 @@ export const generateVoucherPDF = async (
 ): Promise<string> => {
   return new Promise((resolve, reject) => {
     try {
-      const dirPath = path.join(process.cwd(), 'public', 'vouchers');
-      if (!fs.existsSync(dirPath)) {
-        fs.mkdirSync(dirPath, { recursive: true });
-      }
-      
-      const filename = `voucher_${booking.id}.pdf`;
-      const filePath = path.join(dirPath, filename);
-      const writeStream = fs.createWriteStream(filePath);
-      
       const doc = new PDFDocument({ margin: 50, size: 'LETTER' });
-      doc.pipe(writeStream);
+      const buffers: Buffer[] = [];
+
+      doc.on('data', (chunk) => buffers.push(chunk));
+      doc.on('end', async () => {
+        try {
+          const pdfBuffer = Buffer.concat(buffers);
+
+          // If Cloudinary credentials are configured (e.g. on Vercel / Production), upload directly to Cloudinary
+          if (config.cloudinary_name && config.cloudinary_api_key && config.cloudinary_api_secret) {
+            const base64Pdf = `data:application/pdf;base64,${pdfBuffer.toString('base64')}`;
+            const cloudUrl = await uploadToCloudinary(base64Pdf);
+            return resolve(cloudUrl);
+          }
+
+          // Fallback for local development if Cloudinary is not configured
+          const dirPath = path.join(process.cwd(), 'public', 'vouchers');
+          if (!fs.existsSync(dirPath)) {
+            fs.mkdirSync(dirPath, { recursive: true });
+          }
+
+          const filename = `voucher_${booking.id}.pdf`;
+          const filePath = path.join(dirPath, filename);
+          fs.writeFileSync(filePath, pdfBuffer);
+          resolve(`/vouchers/${filename}`);
+        } catch (error) {
+          reject(error);
+        }
+      });
+
+      doc.on('error', (err) => reject(err));
 
       // --- BRAND HEADER BLOCK ---
       // Draw a sleek dark blue/slate top banner
@@ -192,14 +214,6 @@ export const generateVoucherPDF = async (
          .text('For support or queries, email support@orbitxtravel.com or call +880-9612-XXXXXX', 50, 734, { align: 'center', width: 512 });
 
       doc.end();
-
-      writeStream.on('finish', () => {
-        resolve(`/vouchers/${filename}`);
-      });
-
-      writeStream.on('error', (err) => {
-        reject(err);
-      });
     } catch (error) {
       reject(error);
     }

@@ -151,6 +151,8 @@ const getPackages = async (filters: {
   maxPrice?: string;
   verifiedOnly?: string;
   startDate?: string;
+  endDate?: string;
+  guests?: string;
   organizerId?: string;
 }) => {
   const whereConditions: any = {};
@@ -160,10 +162,27 @@ const getPackages = async (filters: {
   }
 
   if (filters.destination) {
-    whereConditions.destination = {
-      contains: filters.destination,
-      mode: 'insensitive',
-    };
+    const destClean = filters.destination.trim();
+    const sansApostrophe = destClean.replace(/['’]/g, '');
+    const words = destClean
+      .split(/[\s'’,-]+/)
+      .filter((w) => w.length >= 2);
+
+    const destinationOrConditions: any[] = [
+      { destination: { contains: destClean, mode: 'insensitive' } },
+      { destination: { contains: sansApostrophe, mode: 'insensitive' } },
+      { title: { contains: destClean, mode: 'insensitive' } },
+      { title: { contains: sansApostrophe, mode: 'insensitive' } },
+    ];
+
+    words.forEach((word) => {
+      destinationOrConditions.push(
+        { destination: { contains: word, mode: 'insensitive' } },
+        { title: { contains: word, mode: 'insensitive' } }
+      );
+    });
+
+    whereConditions.OR = destinationOrConditions;
   }
 
   if (filters.minPrice || filters.maxPrice) {
@@ -180,19 +199,40 @@ const getPackages = async (filters: {
     whereConditions.isVerified = true;
   }
 
-  if (filters.startDate) {
-    whereConditions.startDate = {
-      gte: new Date(filters.startDate),
-    };
+  if (filters.guests) {
+    const reqGuests = Number(filters.guests);
+    if (!isNaN(reqGuests) && reqGuests > 0) {
+      whereConditions.maxSeats = {
+        gte: reqGuests,
+      };
+    }
   }
 
-  // Active packages filter (only show packages that haven't departed yet)
-  // Skip this check if looking up packages for a specific organizer (they need to see all their tours)
-  if (!filters.organizerId) {
-    whereConditions.startDate = {
-      ...whereConditions.startDate,
-      gte: new Date(),
-    };
+  if (filters.startDate && filters.endDate) {
+    const start = new Date(filters.startDate);
+    const end = new Date(filters.endDate);
+    if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+      whereConditions.startDate = { lte: end };
+      whereConditions.endDate = { gte: start };
+    }
+  } else if (filters.startDate) {
+    const searchDate = new Date(filters.startDate);
+    if (!isNaN(searchDate.getTime())) {
+      searchDate.setHours(0, 0, 0, 0);
+      whereConditions.endDate = { gte: searchDate };
+    }
+  } else if (filters.endDate) {
+    const searchEndDate = new Date(filters.endDate);
+    if (!isNaN(searchEndDate.getTime())) {
+      searchEndDate.setHours(23, 59, 59, 999);
+      whereConditions.startDate = { lte: searchEndDate };
+    }
+  } else if (!filters.organizerId) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    whereConditions.endDate = { gte: today };
   }
 
   const packages = await prisma.package.findMany({

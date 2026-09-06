@@ -19,14 +19,38 @@ const createHotel = async (userId: string, payload: any) => {
   return hotel;
 };
 
-const getHotels = async (filters: { address?: string; verifiedOnly?: string; ownerId?: string }) => {
+const getHotels = async (filters: {
+  address?: string;
+  verifiedOnly?: string;
+  ownerId?: string;
+  startDate?: string;
+  endDate?: string;
+  guests?: string;
+}) => {
   const whereConditions: any = {};
 
   if (filters.address) {
-    whereConditions.address = {
-      contains: filters.address,
-      mode: 'insensitive',
-    };
+    const addrClean = filters.address.trim();
+    const sansApostrophe = addrClean.replace(/['’]/g, '');
+    const words = addrClean
+      .split(/[\s'’,-]+/)
+      .filter((w) => w.length >= 2);
+
+    const addressOrConditions: any[] = [
+      { address: { contains: addrClean, mode: 'insensitive' } },
+      { address: { contains: sansApostrophe, mode: 'insensitive' } },
+      { name: { contains: addrClean, mode: 'insensitive' } },
+      { name: { contains: sansApostrophe, mode: 'insensitive' } },
+    ];
+
+    words.forEach((word) => {
+      addressOrConditions.push(
+        { address: { contains: word, mode: 'insensitive' } },
+        { name: { contains: word, mode: 'insensitive' } }
+      );
+    });
+
+    whereConditions.OR = addressOrConditions;
   }
 
   if (filters.verifiedOnly === 'true') {
@@ -35,6 +59,17 @@ const getHotels = async (filters: { address?: string; verifiedOnly?: string; own
 
   if (filters.ownerId) {
     whereConditions.ownerId = filters.ownerId;
+  }
+
+  if (filters.guests) {
+    const reqGuests = Number(filters.guests);
+    if (!isNaN(reqGuests) && reqGuests > 0) {
+      whereConditions.rooms = {
+        some: {
+          inventory: { gte: 1 },
+        },
+      };
+    }
   }
 
   const hotels = await prisma.hotel.findMany({

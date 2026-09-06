@@ -40,6 +40,9 @@ const getHotels = catchAsync(async (req: Request, res: Response) => {
     address: req.query.address as string,
     verifiedOnly: req.query.verifiedOnly as string,
     ownerId: req.query.ownerId as string,
+    startDate: req.query.startDate as string,
+    endDate: req.query.endDate as string,
+    guests: req.query.guests as string,
   };
   const result = await HotelService.getHotels(filters);
   sendResponse(res, {

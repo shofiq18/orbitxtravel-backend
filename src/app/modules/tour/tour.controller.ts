@@ -21,6 +21,8 @@ const getPackages = catchAsync(async (req: Request, res: Response) => {
     maxPrice: req.query.maxPrice as string,
     verifiedOnly: req.query.verifiedOnly as string,
     startDate: req.query.startDate as string,
+    endDate: req.query.endDate as string,
+    guests: req.query.guests as string,
     organizerId: req.query.organizerId as string,
   };
   const result = await TourService.getPackages(filters);
